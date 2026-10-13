@@ -39,7 +39,7 @@ final class WebViewHost: NSObject {
     private(set) var state: SessionState = .loading
     private(set) var isPresented = false
     private var autoShownForLogin = false
-    private var probeTimer: Timer?
+    private var probeTask: Task<Void, Never>?
     private var stateObservers: [(SessionState) -> Void] = []
 
     /// 由 AppDelegate 注入,用于在页面里执行 probe。
@@ -99,8 +99,13 @@ final class WebViewHost: NSObject {
     func start() {
         Log.info("webview.load", ["url": startURL.absoluteString])
         webView.load(URLRequest(url: startURL))
-        probeTimer = Timer.scheduledTimer(withTimeInterval: config.probeIntervalSeconds, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.probe() }
+        let interval = UInt64(config.probeIntervalSeconds * 1_000_000_000)
+        probeTask?.cancel()
+        probeTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: interval)
+                await self?.probe()
+            }
         }
     }
 
@@ -231,7 +236,8 @@ extension WebViewHost: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         Log.warn("webview.did_fail_provisional", ["error": error.localizedDescription])
         // 网络暂不可用时稍后重试,保证常驻。
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 15_000_000_000)
             guard let self, !self.webView.isLoading, self.state != .loggedIn else { return }
             self.reload()
         }

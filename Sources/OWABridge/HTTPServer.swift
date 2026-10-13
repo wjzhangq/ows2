@@ -146,7 +146,8 @@ private final class HTTPConnection {
             if request.method == "HEAD" { response.body = Data() }
             let ms = Int(Date().timeIntervalSince(started) * 1000)
             Log.info("http.request", ["method": request.method, "path": request.path, "status": response.status, "ms": ms])
-            self.queue.async { self.send(response) }
+            let finalResponse = response
+            self.queue.async { self.send(finalResponse) }
         }
     }
 
