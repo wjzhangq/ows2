@@ -114,7 +114,8 @@ final class JSBridge {
     private func injectExtractor() async throws {
         let webView = host.webView
         let world = host.contentWorld
-        let source = host.extractorSource
+        // 末尾返回 true:脚本整体值为 undefined 时 WebKit 会报 "unsupported type"。
+        let source = host.extractorSource + "\n;true;"
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             webView.evaluateJavaScript(source, in: nil, in: world) { result in
                 switch result {
