@@ -82,3 +82,22 @@ final class HTTPTests: XCTestCase {
         XCTAssertEqual(APIError.fromPage(code: "weird", message: "", status: 418).status, 418)
     }
 }
+
+final class PageResultTests: XCTestCase {
+    func testDecodeSuccess() throws {
+        let r = try PageResult.decode(#"{"ok":true,"status":200,"provider":"internalFetchProvider","data":{"count":1},"debug":{"durationMs":3}}"#)
+        XCTAssertTrue(r.ok)
+        XCTAssertEqual(r.provider, "internalFetchProvider")
+        XCTAssertEqual((r.data as? [String: Any])?["count"] as? Int, 1)
+        XCTAssertNil(r.apiError)
+    }
+
+    func testDecodeError() throws {
+        let r = try PageResult.decode(#"{"ok":false,"status":401,"error":"session_expired","message":"login"}"#)
+        XCTAssertEqual(r.apiError, APIError(status: 401, code: "session_expired", message: "login"))
+    }
+
+    func testDecodeGarbage() {
+        XCTAssertThrowsError(try PageResult.decode("42"))
+    }
+}
