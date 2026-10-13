@@ -13,8 +13,8 @@ if [[ "${UNIVERSAL:-0}" == "1" ]]; then
   ARCH_ARGS=(--arch arm64 --arch x86_64)
 fi
 
-swift build -c "$CONFIG" "${ARCH_ARGS[@]}"
-BIN_DIR="$(swift build -c "$CONFIG" "${ARCH_ARGS[@]}" --show-bin-path)"
+swift build -c "$CONFIG" ${ARCH_ARGS[@]+"${ARCH_ARGS[@]}"}
+BIN_DIR="$(swift build -c "$CONFIG" ${ARCH_ARGS[@]+"${ARCH_ARGS[@]}"} --show-bin-path)"
 
 APP="build/OWABridge.app"
 rm -rf "$APP"
