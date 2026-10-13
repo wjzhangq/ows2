@@ -101,3 +101,14 @@ final class PageResultTests: XCTestCase {
         XCTAssertThrowsError(try PageResult.decode("42"))
     }
 }
+
+final class DebugEvalTests: XCTestCase {
+    func testExpressionGetsReturn() {
+        XCTAssertEqual(DebugEval.functionBody(for: " document.title "), "return (document.title);")
+    }
+
+    func testStatementsAreKept() {
+        XCTAssertEqual(DebugEval.functionBody(for: "const a = 1; return a"), "const a = 1; return a")
+        XCTAssertEqual(DebugEval.functionBody(for: "const a = 1\nreturn a"), "const a = 1\nreturn a")
+    }
+}
