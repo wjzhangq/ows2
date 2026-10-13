@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await api.handle(request)
         }
         server.onStateChange = { [weak statusBar] text in
-            DispatchQueue.main.async { statusBar?.update(serverStatus: text) }
+            Task { @MainActor in statusBar?.update(serverStatus: text) }
         }
         do {
             try server.start()
