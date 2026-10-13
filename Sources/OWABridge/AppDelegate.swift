@@ -5,6 +5,7 @@ import OWABridgeCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBar: StatusBarController?
     private var host: WebViewHost?
+    private var bridge: JSBridge?
     private var api: BridgeAPI?
     private var server: HTTPServer?
     private var activity: NSObjectProtocol?
@@ -39,7 +40,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.statusBar = statusBar
         host.observeState { [weak statusBar] state in statusBar?.update(state: state) }
 
-        let api = BridgeAPI(config: config, token: token)
+        let bridge = JSBridge(host: host, timeout: config.requestTimeoutSeconds)
+        self.bridge = bridge
+        host.prober = { [weak bridge] in
+            guard let bridge, let call = try? await bridge.run("probe", timeout: 5), call.result.ok,
+                  let data = call.result.data as? [String: Any] else { return nil }
+            if data["onLoginPage"] as? Bool == true { return .loginPage }
+            return data["mailReady"] as? Bool == true ? .mailReady : .owaLoading
+        }
+
+        let api = BridgeAPI(config: config, token: token, host: host, bridge: bridge)
         self.api = api
         let server = HTTPServer(port: config.port) { request in
             await api.handle(request)
